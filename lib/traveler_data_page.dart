@@ -1,78 +1,57 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class TravelerDataPage extends StatefulWidget {
-  @override
-  _TravelerDataPageState createState() => _TravelerDataPageState();
-}
-
-class _TravelerDataPageState extends State<TravelerDataPage> {
-  late Future<List<Map<String, dynamic>>> _travelerData;
-
-  @override
-  void initState() {
-    super.initState();
-    _travelerData = fetchTravelerData();
-  }
-
-  Future<List<Map<String, dynamic>>> fetchTravelerData() async {
-    List<Map<String, dynamic>> travelerList = [];
-    try {
-      QuerySnapshot querySnapshot = await FirebaseFirestore.instance.collection('traveler').get();
-      print("Number of traveler documents fetched: ${querySnapshot.docs.length}"); // Debug print
-      for (var doc in querySnapshot.docs) {
-        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-        print("Fetched Traveler data: $data"); // Debug print
-        travelerList.add(data);
-      }
-    } catch (e) {
-      print('Error fetching traveler data: $e');
-    }
-    return travelerList;
-  }
-
+class TravelerDataPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text("Traveler Data"),
       ),
-      body: FutureBuilder<List<Map<String, dynamic>>>(
-        future: _travelerData,
+      body: FutureBuilder<QuerySnapshot>(
+        future: FirebaseFirestore.instance.collection('travelers').get(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(child: Text("Error fetching data: ${snapshot.error}"));
-          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return Center(child: Text("No Traveler data available"));
-          } else {
-            List<Map<String, dynamic>> travelerData = snapshot.data!;
+          }
+          if (snapshot.hasError) {
+            return Center(child: Text("Error: ${snapshot.error}"));
+          }
+          if (snapshot.hasData) {
+            final travelerList = snapshot.data!.docs;
+
             return ListView.builder(
-              itemCount: travelerData.length,
+              itemCount: travelerList.length,
               itemBuilder: (context, index) {
-                var traveler = travelerData[index];
+                final traveler = travelerList[index].data() as Map<String, dynamic>;
+
+                // Fetch fields with null checks
+                final travelerName = traveler['travelerName'] ?? 'Unknown'; // Default value for travelerName
+                final phone = traveler['phone'] ?? 'N/A'; // Default value for phone
+                final email = traveler['email'] ?? 'N/A'; // Default value for email
+                final photoUrl = traveler['photoUrl'] ?? ''; // Default value for photoUrl (consider handling empty state)
+
                 return Card(
+                  elevation: 5,
                   margin: EdgeInsets.all(10),
                   child: ListTile(
-                    leading: traveler['profileImage'] != null
-                        ? Image.network(traveler['profileImage'])
-                        : Icon(Icons.person),
-                    title: Text(traveler['name'] ?? 'No Name'),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Email: ${traveler['email'] ?? 'N/A'}'),
-                        Text('Phone: ${traveler['phone'] ?? 'N/A'}'),
-                        // Add more fields as needed
-                      ],
+                    leading: CircleAvatar(
+                      backgroundImage: photoUrl.isNotEmpty 
+                        ? NetworkImage(photoUrl) 
+                        : AssetImage('assets/placeholder.png') as ImageProvider, // Use a placeholder image if photoUrl is empty
                     ),
+                    title: Text(travelerName),
+                    subtitle: Text(
+                      "Phone: $phone\nEmail: $email",
+                    ),
+                    isThreeLine: true,
                   ),
                 );
               },
             );
           }
-        }
+          return Center(child: Text("No Traveler data found"));
+        },
       ),
     );
   }

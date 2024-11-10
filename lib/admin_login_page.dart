@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'admin_registration_page.dart'; // Import the registration page
-import 'admin_portal.dart'; // Import the admin portal page
+import 'admin_registration_page.dart';
+import 'admin_portal.dart';
 
 class AdminLoginPage extends StatefulWidget {
   @override
@@ -14,8 +14,6 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
   final TextEditingController _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
-  String? _errorMessage;
-
   Future<void> _loginAdmin() async {
     String email = _emailController.text.trim();
     String password = _passwordController.text.trim();
@@ -27,26 +25,58 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
           password: password,
         );
 
-        // Navigate to the admin portal if login is successful
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => AdminPortal()),
         );
       } catch (e) {
-        // Show error message if login fails
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Login failed: $e')),
+          SnackBar(content: Text('Login failed: ${e.toString()}')),
         );
       }
+    }
+  }
+
+  Future<void> _resetPassword() async {
+    String email = _emailController.text.trim();
+    if (email.isNotEmpty) {
+      try {
+        await _auth.sendPasswordResetEmail(email: email);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Password reset email sent.')),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: ${e.toString()}')),
+        );
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Please enter your email to reset password.')),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.redAccent,
-        title: Text('Admin Login'),
+      backgroundColor: Color(0xFFF8E6E6), // Light pink background color
+      appBar: PreferredSize(
+        preferredSize: Size.fromHeight(100.0), // Adjust height of the app bar
+        child: AppBar(
+          backgroundColor: Colors.redAccent,
+          automaticallyImplyLeading: false, // To remove the default back button
+          title: Center(
+            child: Text(
+              'Admin Portal',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -69,13 +99,10 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    'Welcome Back',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.redAccent,
-                    ),
+                  Icon(
+                    Icons.admin_panel_settings, // Admin icon
+                    size: 80.0,
+                    color: Colors.redAccent,
                   ),
                   SizedBox(height: 20.0),
                   Form(
@@ -136,35 +163,40 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
                           onPressed: _loginAdmin,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.redAccent,
-                            padding: EdgeInsets.symmetric(vertical: 12.0, horizontal: 24.0),
+                            padding: EdgeInsets.symmetric(vertical: 18.0),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10.0),
+                              borderRadius: BorderRadius.circular(8.0),
                             ),
+                            minimumSize: Size(double.infinity, 50),
                           ),
-                          child: Text('Sign In', style: TextStyle(fontSize: 16)),
+                          child: Text('Sign In', style: TextStyle(fontSize: 18)),
                         ),
                         SizedBox(height: 16.0),
-                        TextButton(
+                        ElevatedButton(
                           onPressed: () {
-                            // Navigate to the registration page
                             Navigator.push(
                               context,
                               MaterialPageRoute(builder: (context) => AdminRegistrationPage()),
                             );
                           },
-                          child: Text('Sign Up', style: TextStyle(color: Colors.redAccent)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.greenAccent,
+                            padding: EdgeInsets.symmetric(vertical: 18.0),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8.0),
+                            ),
+                            minimumSize: Size(double.infinity, 50),
+                          ),
+                          child: Text('Sign Up', style: TextStyle(fontSize: 18)),
+                        ),
+                        SizedBox(height: 10.0),
+                        TextButton(
+                          onPressed: _resetPassword,
+                          child: Text('Forgot Password?', style: TextStyle(color: Colors.redAccent, fontSize: 16)),
                         ),
                       ],
                     ),
                   ),
-                  if (_errorMessage != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 16.0),
-                      child: Text(
-                        _errorMessage!,
-                        style: TextStyle(color: Colors.redAccent),
-                      ),
-                    ),
                 ],
               ),
             ),
@@ -174,3 +206,5 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
     );
   }
 }
+
+
